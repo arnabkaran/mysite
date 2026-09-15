@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Photo Gallery | Dr. Arnab Kanti Karan</title>
+  <meta name="description" content="Photo gallery of Dr. Arnab Kanti Karan.">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .photos-page{padding:110px 0 80px}
+    .photos-head{
+      display:flex;align-items:flex-end;justify-content:space-between;
+      gap:20px;flex-wrap:wrap;margin-bottom:34px;
+    }
+    .photos-head h1{font-size:2.1rem;margin:0}
+    .photos-head p{color:var(--text-2);margin:6px 0 0;font-size:0.92rem}
+    .back-link{
+      padding:9px 18px;border-radius:999px;
+      border:1px solid var(--line-strong);
+      background:var(--bg-panel);
+      color:var(--text-1);font-size:0.85rem;
+      transition:all 0.2s ease;
+    }
+    .back-link:hover{border-color:var(--teal);color:var(--teal)}
+
+    .photos-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(230px,1fr));
+      gap:16px;
+    }
+    .photo-tile{
+      position:relative;
+      border:1px solid var(--line);
+      border-radius:12px;
+      overflow:hidden;
+      background:var(--bg-panel);
+      aspect-ratio:4 / 3;
+      cursor:zoom-in;
+      transition:transform 0.25s ease, box-shadow 0.25s ease;
+    }
+    .photo-tile:hover{transform:translateY(-3px);box-shadow:0 12px 28px rgba(15,42,74,0.14)}
+    .photo-tile img{width:100%;height:100%;object-fit:cover}
+    .photo-tile.is-missing{display:none}
+    .photo-tile figcaption{
+      position:absolute;left:0;right:0;bottom:0;
+      padding:18px 12px 9px;
+      background:linear-gradient(to top, rgba(0,0,0,0.65), rgba(0,0,0,0));
+      color:#fff;font-size:0.78rem;
+    }
+
+    .lightbox{
+      position:fixed;inset:0;z-index:999;
+      display:none;align-items:center;justify-content:center;
+      background:rgba(4,10,18,0.92);
+      padding:24px;
+    }
+    .lightbox.is-open{display:flex}
+    .lightbox img{max-width:92vw;max-height:82vh;border-radius:10px}
+    .lightbox-caption{
+      position:absolute;bottom:26px;left:0;right:0;
+      text-align:center;color:#cfd9e6;font-size:0.85rem;
+    }
+    .lightbox-btn{
+      position:absolute;
+      background:rgba(255,255,255,0.10);
+      border:1px solid rgba(255,255,255,0.25);
+      color:#fff;border-radius:50%;
+      width:44px;height:44px;font-size:1.1rem;
+      cursor:pointer;transition:background 0.2s ease;
+    }
+    .lightbox-btn:hover{background:rgba(255,255,255,0.22)}
+    .lb-close{top:20px;right:20px}
+    .lb-prev{left:18px;top:50%;transform:translateY(-50%)}
+    .lb-next{right:18px;top:50%;transform:translateY(-50%)}
+    @media (max-width:520px){
+      .photos-page{padding:90px 0 60px}
+      .photos-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+    }
+  </style>
+</head>
+<body>
+  <main class="photos-page">
+    <div class="container">
+      <div class="photos-head">
+        <div>
+          <h1>Photo Gallery</h1>
+          <p>Dr. Arnab Kanti Karan &mdash; academic moments</p>
+        </div>
+        <a class="back-link" href="index.html">&#8592; Back to profile</a>
+      </div>
+
+      <div class="photos-grid" id="photosGrid"></div>
+    </div>
+  </main>
+
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Photo viewer">
+    <button class="lightbox-btn lb-close" id="lbClose" type="button" aria-label="Close">&#10005;</button>
+    <button class="lightbox-btn lb-prev" id="lbPrev" type="button" aria-label="Previous photo">&#8592;</button>
+    <img id="lbImage" src="" alt="">
+    <button class="lightbox-btn lb-next" id="lbNext" type="button" aria-label="Next photo">&#8594;</button>
+    <div class="lightbox-caption" id="lbCaption"></div>
+  </div>
+
+<script>
+/* ---- Add or remove photos here ---- */
+var PHOTO_COUNT = 37;
+var PHOTO_DIR   = "photos/";
+var PHOTO_EXT   = ".jpg";
+var PHOTOS = [];
+for (var n = 1; n <= PHOTO_COUNT; n++) {
+  PHOTOS.push({ src: PHOTO_DIR + n + PHOTO_EXT, caption: "" });
+}
+
+(function(){
+  var grid    = document.getElementById("photosGrid");
+  var box     = document.getElementById("lightbox");
+  var lbImage = document.getElementById("lbImage");
+  var lbCap   = document.getElementById("lbCaption");
+  var current = 0;
+
+  PHOTOS.forEach(function(photo, i){
+    var tile = document.createElement("figure");
+    tile.className = "photo-tile";
+    tile.style.margin = "0";
+
+    var img = document.createElement("img");
+    img.src = photo.src;
+    img.alt = photo.caption || ("Photo " + (i + 1));
+    img.loading = "lazy";
+    img.onerror = function(){ tile.classList.add("is-missing"); };
+    tile.appendChild(img);
+
+    if(photo.caption){
+      var cap = document.createElement("figcaption");
+      cap.textContent = photo.caption;
+      tile.appendChild(cap);
+    }
+
+    tile.addEventListener("click", function(){ open(i); });
+    grid.appendChild(tile);
+  });
+
+  function open(i){
+    current = (i + PHOTOS.length) % PHOTOS.length;
+    lbImage.src = PHOTOS[current].src;
+    lbImage.alt = PHOTOS[current].caption || ("Photo " + (current + 1));
+    lbCap.textContent = PHOTOS[current].caption || "";
+    box.classList.add("is-open");
+    document.body.style.overflow = "hidden";
+  }
+  function close(){
+    box.classList.remove("is-open");
+    document.body.style.overflow = "";
+  }
+
+  document.getElementById("lbClose").addEventListener("click", close);
+  document.getElementById("lbPrev").addEventListener("click", function(e){ e.stopPropagation(); open(current - 1); });
+  document.getElementById("lbNext").addEventListener("click", function(e){ e.stopPropagation(); open(current + 1); });
+  box.addEventListener("click", function(e){ if(e.target === box) close(); });
+  document.addEventListener("keydown", function(e){
+    if(!box.classList.contains("is-open")) return;
+    if(e.key === "Escape") close();
+    if(e.key === "ArrowLeft") open(current - 1);
+    if(e.key === "ArrowRight") open(current + 1);
+  });
+})();
+</script>
+</body>
+</html>
